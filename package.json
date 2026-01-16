@@ -1,0 +1,28 @@
+{
+  "name": "chromeextension",
+  "version": "1.0.0",
+  "description": "",
+  "main": "popup.js",
+  "scripts": {
+    "build": "vite build && node scripts/copy-static.mjs",
+    "watch": "tsc --watch",
+    "start": "npm run build && start chrome --load-extension=dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Andrew213/ChromeExtension.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Andrew213/ChromeExtension/issues"
+  },
+  "homepage": "https://github.com/Andrew213/ChromeExtension#readme",
+  "devDependencies": {
+    "@types/chrome": "^0.0.168",
+    "@types/node": "^25.0.9",
+    "typescript": "^4.5.4",
+    "vite": "^7.3.1"
+  }
+}
