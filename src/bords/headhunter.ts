@@ -1,3 +1,9 @@
-export const HHbot = () => {
-  console.log("HH");
+export const HH = (settings: BotSettings) => {
+  console.log("HH", settings);
+
+  chrome.runtime.sendMessage({
+    type: "HELLO",
+  });
+
+  let skiped = 0;
 };

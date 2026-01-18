@@ -1,3 +1,3 @@
-export const SJ = () => {
-  console.log(`SJ`);
+export const SJ = (settings: BotSettings) => {
+  console.log(`SJ`, settings);
 };
