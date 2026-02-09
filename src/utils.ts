@@ -67,33 +67,33 @@ export async function getActiveTabHost() {
   return host;
 }
 
-// Типизация для SiteId
-type SiteIdWithoutUnknown = keyof Omit<typeof SITES, "unknown">;
+// // Типизация для SiteId
+// type SiteIdWithoutUnknown = keyof Omit<typeof SITES, "unknown">;
 
-// Обработчики для каждого сайта
+// // Обработчики для каждого сайта
 
-export type Handler = {
-  name: string;
-  run: (setting: BotSettings) => void;
-  stop: (ctx: BotSettings) => void;
-};
+// export type Handler = {
+//   name: string;
+//   run: (setting: BotSettings) => void;
+//   stop: (ctx: BotSettings) => void;
+// };
 
-export const handlers: Record<SiteIdWithoutUnknown, Handler> = {
-  hh: {
-    name: "HeadHunter",
-    run(setting) {
-      console.log(`HH`, setting);
-      // TODO: шаги
-    },
-    async stop(ctx) {},
-  },
+// export const handlers: Record<SiteIdWithoutUnknown, Handler> = {
+//   hh: {
+//     name: "HeadHunter",
+//     run(setting) {
+//       console.log(`HH`, setting);
+//       // TODO: шаги
+//     },
+//     async stop(ctx) {},
+//   },
 
-  sj: {
-    name: "SuperJob",
-    run(setting) {
-      console.log(`SJ`, setting);
-      // TODO: шаги
-    },
-    async stop() {},
-  },
-};
+//   sj: {
+//     name: "SuperJob",
+//     run(setting) {
+//       console.log(`SJ`, setting);
+//       // TODO: шаги
+//     },
+//     async stop() {},
+//   },
+// };
