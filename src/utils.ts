@@ -1,6 +1,11 @@
 import hhPng from "./assets/hh.png";
 import sjPng from "./assets/sj.png";
 
+export const actions: Record<"start" | "stop", { type: string }> = {
+  start: { type: "START_HH" },
+  stop: { type: "STOP_HH" },
+};
+
 export const SITES = {
   hh: "hh",
   sj: "sj",

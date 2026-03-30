@@ -1,12 +1,15 @@
 import { SiteId } from "../types";
 
-export function createJobAgent(params: {
-  site: SiteId;
-  tickImpl: (state: { idx: number; settings: BotSettings }) => {
-    nextIdx: number;
-    done?: boolean;
-  };
-}) {
+export function createJobAgent(
+  params: {
+    site: SiteId;
+    tickImpl: (state: { idx: number; settings: BotSettings }) => {
+      nextIdx: number;
+      done?: boolean;
+    };
+  },
+  isTest?: boolean,
+) {
   const log = (m: string) => console.log(`[JobAgent] ${m}`);
 
   const state = {
@@ -16,7 +19,7 @@ export function createJobAgent(params: {
     settings: { speed: 3, responseLetter: "" } as BotSettings,
   };
   const computeDelayMs = () => {
-    const speed = Number(state.settings.speed || 3);
+    const speed = Number(state.settings?.speed || 3);
     const base = 1800 - speed * 300;
     return Math.max(250, base);
   };
@@ -50,11 +53,37 @@ export function createJobAgent(params: {
       scheduleNext(0);
     },
 
+    test() {
+      log(
+        `TEST site=${params.site} speed=${state.settings.speed} letterLen=${state.settings.responseLetter?.length}`,
+      );
+
+      const res = params.tickImpl({
+        idx: state.idx,
+        settings: state.settings,
+      });
+
+      state.idx = res.nextIdx;
+
+      if (res.done) {
+        log("TEST DONE");
+      }
+    },
+
     tick() {
       if (!state.running) return;
 
-      const res = params.tickImpl({ idx: state.idx, settings: state.settings });
+      const res = params.tickImpl({
+        idx: state.idx,
+        settings: state.settings || 3,
+      });
       state.idx = res.nextIdx;
+
+      if (isTest) {
+        state.running = false;
+        log("TEST DONE");
+        return;
+      }
 
       if (res.done) {
         state.running = false;
@@ -63,6 +92,10 @@ export function createJobAgent(params: {
       }
 
       scheduleNext(computeDelayMs());
+    },
+    stop() {
+      state.running = false;
+      scheduleNext(0);
     },
   };
 

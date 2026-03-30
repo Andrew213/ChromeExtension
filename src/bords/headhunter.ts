@@ -12,13 +12,15 @@ export function tickHH({
   settings,
 }: {
   idx: number;
-  settings: BotSettings;
+  settings?: BotSettings;
 }) {
+  // тут остановился. пройтись по вакансии и обработать кейсы клика на кнопку "откликнуться"
+
   const cards = document.querySelectorAll<HTMLElement>(
     "[data-qa='vacancy-serp__vacancy']",
   );
 
-  console.log({ Letter: settings.responseLetter });
+  console.log({ Letter: settings?.responseLetter });
 
   if (!cards.length) return { nextIdx: idx, done: true };
 
@@ -39,6 +41,7 @@ export function tickHH({
   const btn = card.querySelector<HTMLAnchorElement>(
     '[data-qa="vacancy-serp__vacancy_response"]',
   );
+
   if (btn?.href) console.log(`[JobAgent] response href: ${btn.href}`);
 
   return { nextIdx: idx + 1 };

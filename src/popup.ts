@@ -48,8 +48,31 @@ startBtn.onclick = async () => {
   }
 };
 
-stopBtn.onclick = () => chrome.runtime.sendMessage({ type: "STOP" });
-testBtn.onclick = () => chrome.runtime.sendMessage({ type: "RUN_TEST_STEP" });
+stopBtn.onclick = () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+    const [tab] = tabs;
+
+    if (tab.id) {
+      console.log({ responseLetter: responseLetter.value });
+      chrome.tabs.sendMessage(tab.id, {
+        type: "STOP_HH",
+      });
+    }
+  });
+};
+
+testBtn.onclick = () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+    const [tab] = tabs;
+
+    if (tab.id) {
+      console.log({ responseLetter: responseLetter.value });
+      chrome.tabs.sendMessage(tab.id, {
+        type: "TEST_STEP",
+      });
+    }
+  });
+};
 refreshBtn.onclick = renderSite;
 
 speedRange.addEventListener("input", () => {
