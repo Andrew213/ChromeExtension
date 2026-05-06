@@ -19,6 +19,7 @@ const App = () => {
   const [isCoverLoaded, setIsCoverLoaded] = useState(false);
 
   const site = useMemo(() => resolveSite(host), [host]);
+
   const settings = useMemo(
     () => ({ speed, responseLetter: coverLetter }),
     [speed, coverLetter],
@@ -43,6 +44,7 @@ const App = () => {
   };
 
   const testStep = async () => {
+    if (site.id === "unknown") return;
     await sendMessageToActiveTab({
       type: "TEST_STEP",
       settings,
@@ -72,9 +74,7 @@ const App = () => {
       <Card className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-muted mb-1.5 text-[12px]">Текущий сайт</div>
-          <div className="text-[18px] font-bold mb-1.5">
-            {site.name || "-"}
-          </div>
+          <div className="text-[18px] font-bold mb-1.5">{site.name || "-"}</div>
           <div className="text-[12px] text-[rgba(234,240,255,0.75)] truncate max-w-50">
             {host || "-"}
           </div>

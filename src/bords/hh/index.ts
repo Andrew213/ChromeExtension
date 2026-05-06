@@ -1,12 +1,15 @@
-import type { TickResult, TickState } from "../api/jobAgent";
 import { relocationGuard } from "./guards/relocation.guard";
 import { applyFromSerpFlow } from "./flows/applyFromSerp.flow";
+import { directResponseGuard } from "@/bords/hh/guards/directResponse.guard";
+import { TickResult, TickState } from "@/api/jobAgent";
 
 export function tickHH(state: TickState): TickResult {
-  // 1) глобальные guards
+  // глобальные guards
   const guarded = relocationGuard(state);
+  const direct = directResponseGuard(state);
+  if (direct) return direct;
   if (guarded) return guarded;
 
-  // 2) основной flow
+  // основной flow
   return applyFromSerpFlow(state);
 }

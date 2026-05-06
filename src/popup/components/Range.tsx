@@ -1,8 +1,6 @@
 import type { ComponentPropsWithoutRef } from "react";
 
-type RangeProps = ComponentPropsWithoutRef<"input">;
-
-const Range = (props: RangeProps) => {
+const Range: React.FC<ComponentPropsWithoutRef<"input">> = (props) => {
   return (
     <div className="flex items-center gap-2.5">
       <input type="range" min="1" max="5" {...props} />
