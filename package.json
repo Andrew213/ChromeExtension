@@ -4,10 +4,11 @@
   "description": "",
   "main": "popup.js",
   "scripts": {
+    "dev": "vite build --watch",
+    "dev:static": "node scripts/copy-static.mjs --watch",
     "build": "vite build && node scripts/copy-static.mjs",
-    "watch": "tsc --watch",
     "start": "npm run build && start chrome --load-extension=dist",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:popup": "vite --host 127.0.0.1 --port 5173"
   },
   "repository": {
     "type": "git",
@@ -20,9 +21,20 @@
   },
   "homepage": "https://github.com/Andrew213/ChromeExtension#readme",
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.4",
     "@types/chrome": "^0.0.168",
     "@types/node": "^25.0.9",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.4",
     "typescript": "^4.5.4",
-    "vite": "^7.3.1"
+    "vite": "^8.0.10"
+  },
+  "dependencies": {
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
   }
 }

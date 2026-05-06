@@ -21,6 +21,6 @@
       "js": ["content.js"]
     }
   ],
-  "permissions": ["scripting", "activeTab", "webNavigation", "storage"],
+  "permissions": ["tabs", "scripting", "activeTab", "webNavigation", "storage"],
   "host_permissions": ["http://*/*", "https://*/*"]
 }

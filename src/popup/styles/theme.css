@@ -1,0 +1,25 @@
+@theme {
+  --font-raleway: "Raleway", ui-sans-serif, system-ui;
+  --color-bg: #0b1220;
+  --color-card: #0f1a2f;
+  --color-card2: #0c1629;
+  --color-text: #eaf0ff;
+
+  --color-muted: #9fb0d0;
+  --color-stroke: rgba(255, 255, 255, 0.08);
+  --color-primary: #6aa7ff;
+  --color-primary2: #3b82f6;
+
+  --background-image-primary-gradient: linear-gradient(
+    135deg,
+    var(--color-primary2),
+    var(--color-primary)
+  );
+  --background-image-card-gradient: linear-gradient(
+    180deg,
+    var(--color-card),
+    var(--color-card2)
+  );
+
+  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.35);
+}

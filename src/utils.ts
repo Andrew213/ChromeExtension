@@ -1,6 +1,13 @@
 import hhPng from "./assets/hh.png";
 import sjPng from "./assets/sj.png";
 
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
+
 export const actions: Record<"start" | "stop", { type: string }> = {
   start: { type: "START_HH" },
   stop: { type: "STOP_HH" },
@@ -14,7 +21,7 @@ export const SITES = {
 
 type SiteId = keyof typeof SITES;
 
-type SiteT = {
+export type SiteT = {
   id: SiteId;
   name: string;
   match?: (a: string) => boolean;
@@ -68,6 +75,7 @@ export async function getActiveTabHost() {
   } catch {
     host = "";
   }
+  console.log({ hostHere: host });
 
   return host;
 }

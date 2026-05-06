@@ -1,5 +1,4 @@
 import {
-  copyFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -7,7 +6,7 @@ import {
   statSync,
   watch,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 const DIST_DIR = "dist";
 const PUBLIC_DIR = "public";
@@ -16,9 +15,8 @@ const isWatchMode = process.argv.includes("--watch");
 
 function copyFile(source, target) {
   if (!existsSync(source)) return;
-
-  mkdirSync(dirname(target), { recursive: true });
-  copyFileSync(source, target);
+  mkdirSync(join(target, ".."), { recursive: true });
+  cpSync(source, target);
 }
 
 function copyDirectoryContents(sourceDir, targetDir) {
@@ -31,10 +29,7 @@ function copyDirectoryContents(sourceDir, targetDir) {
     const target = join(targetDir, entry);
 
     if (statSync(source).isDirectory()) {
-      cpSync(source, target, {
-        recursive: true,
-        force: true,
-      });
+      cpSync(source, target, { recursive: true });
     } else {
       copyFile(source, target);
     }
