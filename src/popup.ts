@@ -10,8 +10,28 @@ const stopBtn = $("stopBtn") as HTMLButtonElement;
 const testBtn = $("testBtn") as HTMLButtonElement;
 const refreshBtn = $("refreshBtn") as HTMLButtonElement;
 const responseLetter = $("coverLetter") as HTMLTextAreaElement;
+const coverLetterCount = document.getElementById(
+  "coverLetterCount",
+) as HTMLSpanElement | null;
 
 const settings: BotSettings = { speed: Number(speedRange.value) as Speed };
+
+export const COVER_KEY = "jobagent.coverLetter";
+
+function updateCoverCounter() {
+  if (!coverLetterCount) return;
+  coverLetterCount.textContent = String(responseLetter.value.length);
+}
+
+chrome.storage.local.get(COVER_KEY, (data) => {
+  const saved = data[COVER_KEY];
+  if (typeof saved === "string") {
+    responseLetter.value = saved;
+    updateCoverCounter();
+  } else {
+    updateCoverCounter();
+  }
+});
 
 startBtn.onclick = async () => {
   const host = await getActiveTabHost();
@@ -33,7 +53,6 @@ startBtn.onclick = async () => {
       const [tab] = tabs;
 
       if (tab.id) {
-        console.log({ responseLetter: responseLetter.value });
         chrome.tabs.sendMessage(tab.id, {
           type: "START_HH",
           settings: { speed: 3, responseLetter: responseLetter?.value || "" },
@@ -53,7 +72,6 @@ stopBtn.onclick = () => {
     const [tab] = tabs;
 
     if (tab.id) {
-      console.log({ responseLetter: responseLetter.value });
       chrome.tabs.sendMessage(tab.id, {
         type: "STOP_HH",
       });
@@ -66,14 +84,25 @@ testBtn.onclick = () => {
     const [tab] = tabs;
 
     if (tab.id) {
-      console.log({ responseLetter: responseLetter.value });
       chrome.tabs.sendMessage(tab.id, {
         type: "TEST_STEP",
+        settings: { speed: 3, responseLetter: responseLetter?.value || "" },
       });
     }
   });
 };
 refreshBtn.onclick = renderSite;
+
+let saveTimer: number | undefined;
+
+responseLetter.addEventListener("input", () => {
+  updateCoverCounter();
+
+  if (saveTimer) window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    chrome.storage.local.set({ [COVER_KEY]: responseLetter.value });
+  }, 200);
+});
 
 speedRange.addEventListener("input", () => {
   const speedValue = speedRange.value;

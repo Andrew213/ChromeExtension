@@ -17,10 +17,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://hh.ru/*", "https://*.hh.ru/*"],
       "js": ["content.js"]
     }
   ],
-  "permissions": ["scripting", "activeTab"],
+  "permissions": ["scripting", "activeTab", "webNavigation", "storage"],
   "host_permissions": ["http://*/*", "https://*/*"]
 }
