@@ -1,4 +1,4 @@
-import type { TickResult, TickState } from "../../api/jobAgent";
+import { TickResult, TickState } from "@/api/jobAgent";
 import { setNativeValue } from "../actions/input";
 import {
   findInlineCoverLetterForm,

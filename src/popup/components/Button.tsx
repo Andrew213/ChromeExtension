@@ -1,11 +1,11 @@
 import type { ComponentPropsWithoutRef } from "react";
 import { cn } from "../../utils";
 
-export const Button = ({
+export const Button: React.FC<ComponentPropsWithoutRef<"button">> = ({
   children,
   className,
   ...props
-}: ComponentPropsWithoutRef<"button">) => {
+}) => {
   return (
     <button
       className={cn(

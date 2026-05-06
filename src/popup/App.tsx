@@ -1,56 +1,92 @@
 import { useEffect, useMemo, useState } from "react";
-import Card from "./components/Card";
-import Header from "./Header";
-import { getActiveTabHost, resolveSite } from "../utils";
+import { resolveSite } from "../utils";
 import Button from "./components/Button";
+import Card from "./components/Card";
 import Range from "./components/Range";
-
-export const isExtension =
-  typeof chrome !== "undefined" && Boolean(chrome.runtime?.id);
-
-function getAssetUrl(path: string) {
-  if (!path) return "";
-
-  if (isExtension) {
-    return chrome.runtime.getURL(path);
-  }
-
-  return path.startsWith("/") ? path : `/${path}`;
-}
+import Header from "./Header";
+import {
+  getActiveTabHost,
+  getRuntimeUrl,
+  getStoredCoverLetter,
+  sendMessageToActiveTab,
+  setStoredCoverLetter,
+} from "./platform";
 
 const App = () => {
   const [host, setHost] = useState("");
+  const [speed, setSpeed] = useState(3);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [isCoverLoaded, setIsCoverLoaded] = useState(false);
 
   const site = useMemo(() => resolveSite(host), [host]);
 
+  const settings = useMemo(
+    () => ({ speed, responseLetter: coverLetter }),
+    [speed, coverLetter],
+  );
+
+  const refreshSite = async () => {
+    const nextHost = await getActiveTabHost();
+    setHost(nextHost);
+  };
+
+  const startHH = async () => {
+    if (site.id === "unknown") return;
+
+    await sendMessageToActiveTab({
+      type: "START_HH",
+      settings,
+    });
+  };
+
+  const stopHH = async () => {
+    await sendMessageToActiveTab({ type: "STOP_HH" });
+  };
+
+  const testStep = async () => {
+    if (site.id === "unknown") return;
+    await sendMessageToActiveTab({
+      type: "TEST_STEP",
+      settings,
+    });
+  };
+
   useEffect(() => {
-    getActiveTabHost().then(setHost);
+    refreshSite();
+    getStoredCoverLetter()
+      .then(setCoverLetter)
+      .finally(() => setIsCoverLoaded(true));
   }, []);
+
+  useEffect(() => {
+    if (!isCoverLoaded) return;
+
+    const timer = window.setTimeout(() => {
+      setStoredCoverLetter(coverLetter);
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [coverLetter, isCoverLoaded]);
 
   return (
     <div className="p-[14px] w-[360px] min-h-[560px]">
-      <Header site={site} />
+      <Header site={site} onRefresh={refreshSite} />
       <Card className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-muted mb-1.5 text-[12px]">Текущий сайт</div>
-          <div className="text-[18px] font-bold mb-1.5" id="siteName">
-            {site.name || "—"}
-          </div>
-          <div
-            className="text-[12px] text-[rgba(234,240,255,0.75)] truncate max-w-50"
-            id="hostText"
-          >
-            {host || "—"}
+          <div className="text-[18px] font-bold mb-1.5">{site.name || "-"}</div>
+          <div className="text-[12px] text-[rgba(234,240,255,0.75)] truncate max-w-50">
+            {host || "-"}
           </div>
         </div>
 
         <div>
-          <div className="size-21.5 rounded-full border border-stroke ">
+          <div className="size-21.5 rounded-full border border-stroke">
             <img
-              id="siteImage"
-              src={getAssetUrl(site.img)}
+              src={getRuntimeUrl(site.img)}
               className="size-full object-cover scale-[1.02]"
-              alt="site"
+              alt={site.name}
+              title={site.id}
             />
           </div>
         </div>
@@ -63,7 +99,11 @@ const App = () => {
           >
             Скорость
           </label>
-          <Range id="speedRange" />
+          <Range
+            id="speedRange"
+            value={speed}
+            onChange={(event) => setSpeed(Number(event.currentTarget.value))}
+          />
         </div>
 
         <div className="mb-4">
@@ -75,30 +115,24 @@ const App = () => {
           </label>
           <textarea
             id="coverLetter"
-            className="
-    w-full resize-y min-h-[110px] max-h-[220px]
-    px-3 py-2.5 rounded-xl
-    border border-stroke
-    bg-white/5 text-text
-    outline-none
-    font-inherit text-[13px] leading-[1.35] placeholder:text-muted/65"
-            placeholder="Вставь или набросай текст сопроводительного письма…"
+            className="w-full resize-y min-h-[110px] max-h-[220px] px-3 py-2.5 rounded-xl border border-stroke bg-white/5 text-text outline-none font-[inherit] text-[13px] leading-[1.35] placeholder:text-muted/65"
+            placeholder="Вставь или набросай текст сопроводительного письма..."
             rows={6}
-          ></textarea>
+            value={coverLetter}
+            onChange={(event) => setCoverLetter(event.currentTarget.value)}
+          />
           <div className="flex gap-1.5 justify-end mt-1.5">
-            <span className="muted]" id="coverLetterCount">
-              0
-            </span>
+            <span className="muted">{coverLetter.length}</span>
             <span className="muted">символов</span>
           </div>
         </div>
 
         <div className="flex gap-2">
-          <Button className="primary" id="startBtn">
+          <Button className="primary" onClick={startHH}>
             Start
           </Button>
-          <Button id="stopBtn">Stop</Button>
-          <Button className="ghost" id="testBtn">
+          <Button onClick={stopHH}>Stop</Button>
+          <Button className="ghost" onClick={testStep}>
             Test step
           </Button>
         </div>

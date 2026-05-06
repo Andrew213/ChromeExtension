@@ -1,14 +1,12 @@
-import { ComponentPropsWithoutRef } from "react";
+import type { ComponentPropsWithoutRef } from "react";
 
 const Range: React.FC<ComponentPropsWithoutRef<"input">> = (props) => {
   return (
     <div className="flex items-center gap-2.5">
-      <input type="range" min="1" max="5" value="3" {...props} />
+      <input type="range" min="1" max="5" {...props} />
       <div className="flex justify-between w-full text-[12px] text-muted">
         <span className="text-[12px] text-muted">Медленно</span>
-        <span className="font-bold" id="speedBadge">
-          3
-        </span>
+        <span className="font-bold">{props.value}</span>
         <span className="text-[12px] text-muted">Быстро</span>
       </div>
     </div>

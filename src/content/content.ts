@@ -1,5 +1,5 @@
+import { tickHH } from "@/bords/hh";
 import { createJobAgent } from "../api/jobAgent";
-import { tickHH } from "../hh.ts";
 
 const COVER_KEY = "jobagent.coverLetter";
 
@@ -17,6 +17,7 @@ async function loadCoverLetter(): Promise<string> {
 
 (() => {
   // Работать только в top-frame, иначе будет куча контекстов и другой sessionStorage
+  // обработка редиректа на форму работодателя
   if (window.top !== window.self) return;
 
   const RESUME_KEY = "jobagent:resume";
