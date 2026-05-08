@@ -3,13 +3,53 @@ const COVER_KEY = "jobagent.coverLetter";
 export const isExtension =
   typeof chrome !== "undefined" && Boolean(chrome.runtime?.id);
 
-export async function getActiveTabHost() {
-  if (!isExtension) return "hh.ru";
+function isPageTab(tab?: chrome.tabs.Tab): tab is chrome.tabs.Tab {
+  if (!tab?.id || !tab.url) return false;
 
-  const [tab] = await chrome.tabs.query({
+  try {
+    const url = new URL(tab.url);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+async function queryActivePageTab(queryInfo: chrome.tabs.QueryInfo) {
+  const tabs = await chrome.tabs.query(queryInfo);
+  return tabs.find(isPageTab);
+}
+
+async function getActivePageTab() {
+  const currentWindowTab = await queryActivePageTab({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (currentWindowTab) return currentWindowTab;
+
+  const lastFocusedWindowTab = await queryActivePageTab({
     active: true,
     lastFocusedWindow: true,
   });
+
+  if (lastFocusedWindowTab) return lastFocusedWindowTab;
+
+  const windows = await chrome.windows.getAll({
+    populate: true,
+    windowTypes: ["normal"],
+  });
+
+  const activeTabs = windows
+    .flatMap((window) => window.tabs ?? [])
+    .filter((tab) => tab.active);
+
+  return activeTabs.find(isPageTab);
+}
+
+export async function getActiveTabHost() {
+  if (!isExtension) return "hh.ru";
+
+  const tab = await getActivePageTab();
 
   const urlStr = tab?.url || "";
 
@@ -43,12 +83,9 @@ export async function sendMessageToActiveTab(message: unknown) {
     return;
   }
 
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    lastFocusedWindow: true,
-  });
+  const tab = await getActivePageTab();
 
-  if (!tab.id) return;
+  if (!tab?.id) return;
 
   try {
     await chrome.tabs.sendMessage(tab.id, message);

@@ -1,46 +1,40 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 
-export const API_URL = import.meta.env.VITE_API_HOST;
+type BackgroundResponse<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: { message: string; status?: number } };
 
-export const client = axios.create({
-  baseURL: API_URL,
-  headers: {
-    Accept: "application/json, text/plain, */*",
-  },
-});
+function sendMessageToBackground<T>(message: unknown): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      const error = chrome.runtime.lastError;
+
+      if (error) {
+        reject(new Error(error.message));
+        return;
+      }
+
+      resolve(response as T);
+    });
+  });
+}
 
 export const request = async <T = unknown>(
-  options: AxiosRequestConfig,
-  errorsMessages?: Record<number, string>,
-  nativeErrors?: number[],
+  options: AxiosRequestConfig & { skipAuth?: boolean },
 ): Promise<T> => {
-  const onSuccess = (response: AxiosResponse<T>) => {
-    return response.data;
-  };
+  const response = await sendMessageToBackground<BackgroundResponse<T>>({
+    type: "API_REQUEST",
+    payload: {
+      method: options.method ?? "GET",
+      url: options.url,
+      body: options.data,
+      skipAuth: options.skipAuth,
+    },
+  });
 
-  const onError = (error: AxiosError) => {
-    console.log("error in ax", error);
-    if (error.response) {
-      const status = error.response.status;
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
 
-      if (nativeErrors?.includes(status)) {
-        throw error;
-      }
-
-      if (errorsMessages?.[status]) {
-        throw new Error(errorsMessages[status]);
-      }
-
-      // Иначе пробрасываем стандартное сообщение
-      throw new Error(
-        (error.response.data as any)?.detail ||
-          `Request failed with status ${status}`,
-      );
-    }
-
-    // Ошибка без ответа (например, сеть)
-    throw new Error(error.message || "Network Error");
-  };
-
-  return client(options).then(onSuccess).catch(onError);
+  return response.data;
 };

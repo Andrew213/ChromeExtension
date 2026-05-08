@@ -39,3 +39,13 @@ export namespace AuthPostConsume {
     user: UserT;
   };
 }
+
+export namespace AuthPostLogout {
+  export const METHOD = "POST";
+  export const URL = "/auth/logout";
+  export const QUERY_KEY = "post login logout";
+
+  export type Response = {
+    success: boolean;
+  };
+}
