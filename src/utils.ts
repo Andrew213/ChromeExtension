@@ -8,18 +8,13 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-export const actions: Record<"start" | "stop", { type: string }> = {
-  start: { type: "START_HH" },
-  stop: { type: "STOP_HH" },
-};
-
 export const SITES = {
   hh: "hh",
   sj: "sj",
   unknown: "unknown",
 } as const;
 
-type SiteId = keyof typeof SITES;
+export type SiteId = keyof typeof SITES;
 
 export type SiteT = {
   id: SiteId;

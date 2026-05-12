@@ -1,5 +1,7 @@
 import { tickHH } from "@/bords/hh";
 import { createJobAgent } from "../api/jobAgent";
+import { ContentMessageType } from "@/content/messages";
+import type { SiteId } from "@/utils";
 
 const COVER_KEY = "jobagent.coverLetter";
 
@@ -13,6 +15,23 @@ async function loadCoverLetter(): Promise<string> {
   const data = await chrome.storage.local.get(COVER_KEY);
   const v = data[COVER_KEY];
   return typeof v === "string" ? v : "";
+}
+
+function detectContentSite(host: string): SiteId {
+  const normalizedHost = host.toLowerCase().replace(/^www\./, "");
+
+  if (normalizedHost === "hh.ru" || normalizedHost.endsWith(".hh.ru")) {
+    return "hh";
+  }
+
+  if (
+    normalizedHost === "superjob.ru" ||
+    normalizedHost.endsWith(".superjob.ru")
+  ) {
+    return "sj";
+  }
+
+  return "unknown";
 }
 
 (() => {
@@ -111,30 +130,54 @@ async function loadCoverLetter(): Promise<string> {
   window.addEventListener("popstate", onUrlChange);
 
   // 3) команды из popup
-  chrome.runtime.onMessage.addListener(async (message) => {
-    if (message?.type === "START_HH") {
-      const agent = ensureAgent();
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    const { Ping, Start, Stop, TestStep } = ContentMessageType;
 
-      const s = message.settings ?? {};
-      const letter =
-        typeof s.responseLetter === "string" && s.responseLetter.trim()
-          ? s.responseLetter
-          : await loadCoverLetter();
-
-      agent.start({ ...s, responseLetter: letter });
-      return;
+    // попап пингует сначала контент скрипты и потом уже позволяется пользоваться кнопками
+    if (message?.type === Ping) {
+      const site = detectContentSite(location.host);
+      // в пинге определяю сайт
+      sendResponse({
+        ok: true,
+        site,
+        ready: site !== "unknown",
+        href: location.href,
+        capabilities: {
+          start: site === "hh",
+          stop: site === "hh",
+          testStep: site === "hh",
+        },
+      });
+      return false;
     }
 
-    if (message?.type === "STOP_HH") {
+    if (message?.type === Start) {
+      void (async () => {
+        const agent = ensureAgent();
+
+        const s = message.settings ?? {};
+        const letter =
+          typeof s.responseLetter === "string" && s.responseLetter.trim()
+            ? s.responseLetter
+            : await loadCoverLetter();
+
+        agent.start({ ...s, responseLetter: letter });
+      })();
+      return false;
+    }
+
+    if (message?.type === Stop) {
       window.__jobAgent?.stop();
-      return;
+      return false;
     }
 
-    if (message?.type === "TEST_STEP") {
+    if (message?.type === TestStep) {
       const agent = ensureAgent();
       agent.stop();
       agent.test(message.settings ?? {});
-      return;
+      return false;
     }
+
+    return false;
   });
 })();

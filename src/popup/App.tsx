@@ -1,3 +1,4 @@
+import { ContentMessageType } from "@/messages";
 import { useEffect, useMemo, useState } from "react";
 import { resolveSite } from "../utils";
 import Button from "./components/Button";
@@ -8,12 +9,16 @@ import {
   getActiveTabHost,
   getRuntimeUrl,
   getStoredCoverLetter,
+  pingActiveTabAgent,
   sendMessageToActiveTab,
   setStoredCoverLetter,
 } from "./platform";
+import type { AgentHealth } from "./platform";
 
 const App = () => {
   const [host, setHost] = useState("");
+  const [agentHealth, setAgentHealth] = useState<AgentHealth>();
+  const [isCheckingAgent, setIsCheckingAgent] = useState(false);
   const [speed, setSpeed] = useState(3);
   const [coverLetter, setCoverLetter] = useState("");
   const [isCoverLoaded, setIsCoverLoaded] = useState(false);
@@ -25,28 +30,63 @@ const App = () => {
     [speed, coverLetter],
   );
 
+  const isSupportedSite = site.id !== "unknown";
+  const isAgentReady =
+    isSupportedSite && agentHealth?.ready && agentHealth.site === site.id;
+  const canStart = Boolean(isAgentReady && agentHealth?.capabilities.start);
+  const canStop = Boolean(isAgentReady && agentHealth?.capabilities.stop);
+  const canTestStep = Boolean(
+    isAgentReady && agentHealth?.capabilities.testStep,
+  );
+
+  const agentStatusText = (() => {
+    if (!isSupportedSite) return "Сайт не поддержан";
+    if (isCheckingAgent) return "Проверяем агент...";
+    if (!agentHealth) return "Агент не отвечает";
+    if (agentHealth.site !== site.id) return "Агент не совпадает с сайтом";
+    if (!agentHealth.ready) return "Агент не готов";
+    return "Агент готов";
+  })();
+
   const refreshSite = async () => {
-    const nextHost = await getActiveTabHost();
-    setHost(nextHost);
+    setIsCheckingAgent(true);
+
+    try {
+      const nextHost = await getActiveTabHost();
+      const nextSite = resolveSite(nextHost);
+      setHost(nextHost);
+
+      if (nextSite.id === "unknown") {
+        setAgentHealth(undefined);
+        return;
+      }
+
+      setAgentHealth(await pingActiveTabAgent());
+    } finally {
+      setIsCheckingAgent(false);
+    }
   };
 
   const startHH = async () => {
-    if (site.id === "unknown") return;
+    if (!canStart) return;
 
     await sendMessageToActiveTab({
-      type: "START_HH",
+      type: ContentMessageType.Start,
       settings,
     });
   };
 
   const stopHH = async () => {
-    await sendMessageToActiveTab({ type: "STOP_HH" });
+    if (!canStop) return;
+
+    await sendMessageToActiveTab({ type: ContentMessageType.Stop });
   };
 
   const testStep = async () => {
-    if (site.id === "unknown") return;
+    if (!canTestStep) return;
+
     await sendMessageToActiveTab({
-      type: "TEST_STEP",
+      type: ContentMessageType.TestStep,
       settings,
     });
   };
@@ -69,8 +109,9 @@ const App = () => {
   }, [coverLetter, isCoverLoaded]);
 
   return (
-    <div className="p-[14px] w-[360px] min-h-[560px]">
+    <>
       <Header site={site} onRefresh={refreshSite} />
+
       <Card className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-muted mb-1.5 text-[12px]">Текущий сайт</div>
@@ -78,19 +119,19 @@ const App = () => {
           <div className="text-[12px] text-[rgba(234,240,255,0.75)] truncate max-w-50">
             {host || "-"}
           </div>
+          <div className="mt-2 text-[12px] text-muted">{agentStatusText}</div>
         </div>
 
-        <div>
-          <div className="size-21.5 rounded-full border border-stroke">
-            <img
-              src={getRuntimeUrl(site.img)}
-              className="size-full object-cover scale-[1.02]"
-              alt={site.name}
-              title={site.id}
-            />
-          </div>
+        <div className="size-21.5 rounded-full border border-stroke">
+          <img
+            src={getRuntimeUrl(site.img)}
+            className="size-full object-cover scale-[1.02]"
+            alt={site.name}
+            title={site.id}
+          />
         </div>
       </Card>
+
       <Card>
         <div className="mb-4">
           <label
@@ -128,11 +169,25 @@ const App = () => {
         </div>
 
         <div className="flex gap-2">
-          <Button className="primary" onClick={startHH}>
+          <Button
+            className="primary disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={startHH}
+            disabled={!canStart}
+          >
             Start
           </Button>
-          <Button onClick={stopHH}>Stop</Button>
-          <Button className="ghost" onClick={testStep}>
+          <Button
+            className="disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={stopHH}
+            disabled={!canStop}
+          >
+            Stop
+          </Button>
+          <Button
+            className="ghost disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={testStep}
+            disabled={!canTestStep}
+          >
             Test step
           </Button>
         </div>
@@ -141,7 +196,7 @@ const App = () => {
       <footer className="mt-[2px]">
         <span className="muted">MVP: hh.ru + superjob.ru</span>
       </footer>
-    </div>
+    </>
   );
 };
 
