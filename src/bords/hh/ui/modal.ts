@@ -34,3 +34,9 @@ export function closeModal(modal: HTMLElement) {
 
   closeBtn?.click();
 }
+
+export function getVacancyResponseForm() {
+  return document.querySelector<HTMLFormElement>(
+    'form#RESPONSE_MODAL_FORM_ID[name="vacancy_response"]',
+  );
+}

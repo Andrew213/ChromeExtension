@@ -3,7 +3,162 @@ import { createJobAgent } from "../api/jobAgent";
 import { ContentMessageType } from "@/content/messages";
 import type { SiteId } from "@/utils";
 
+type BackgroundResponse<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: { message: string; status?: number } };
+
+function requestFromContent<T = unknown>(options: {
+  method?: string;
+  url: string;
+  data?: unknown;
+  skipAuth?: boolean;
+}): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        type: "API_REQUEST",
+        payload: {
+          method: options.method ?? "GET",
+          url: options.url,
+          body: options.data,
+          skipAuth: options.skipAuth,
+        },
+      },
+      (response: BackgroundResponse<T>) => {
+        const error = chrome.runtime.lastError;
+
+        if (error) {
+          reject(new Error(error.message));
+          return;
+        }
+
+        if (!response?.ok) {
+          reject(new Error(response?.error?.message ?? "Request failed"));
+          return;
+        }
+
+        resolve(response.data);
+      },
+    );
+  });
+}
+
 const COVER_KEY = "jobagent.coverLetter";
+
+const VACANCY_FORM_SELECTOR =
+  'form#RESPONSE_MODAL_FORM_ID[name="vacancy_response"]';
+const CAPTURED_VACANCY_FORMS_KEY = "jobagent:capturedVacancyForms";
+
+let captureTimer = 0;
+
+function readCapturedVacancyForms() {
+  const raw = sessionStorage.getItem(CAPTURED_VACANCY_FORMS_KEY);
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberCapturedVacancyForm(key: string) {
+  const captured = readCapturedVacancyForms();
+  if (captured.includes(key)) return;
+
+  captured.push(key);
+  sessionStorage.setItem(
+    CAPTURED_VACANCY_FORMS_KEY,
+    JSON.stringify(captured.slice(-200)),
+  );
+}
+
+function getVacancyIdFromUrl(url: string) {
+  try {
+    return new URL(url).searchParams.get("vacancyId");
+  } catch {
+    return null;
+  }
+}
+
+function getVacancyFormCaptureKey(form: HTMLFormElement) {
+  const vacancyId =
+    getVacancyIdFromUrl(location.href) || getVacancyIdFromUrl(form.action);
+
+  if (vacancyId) return `vacancy:${vacancyId}`;
+
+  return `url:${location.origin}${location.pathname}`;
+}
+
+function isEmployerQuestionnaireForm(form: HTMLFormElement) {
+  // форма есть как в модалке для сопроводительного, так и в тестах
+  return Boolean(
+    form.querySelector(
+      '[data-qa="employer-asking-for-test"], [data-qa="task-body"], [data-qa="task-question"]',
+    ),
+  );
+}
+
+async function captureVacancyResponseForm() {
+  const form = document.querySelector<HTMLFormElement>(VACANCY_FORM_SELECTOR);
+  if (!form) return false;
+
+  if (!isEmployerQuestionnaireForm(form)) return true;
+
+  const captureKey = getVacancyFormCaptureKey(form);
+  if (readCapturedVacancyForms().includes(captureKey)) {
+    console.log(
+      "[JobAgent] vacancy response form already captured",
+      captureKey,
+    );
+    return true;
+  }
+
+  try {
+    await requestFromContent({
+      method: "POST",
+      url: "/vacancy-response-forms",
+      skipAuth: true,
+      data: {
+        pageUrl: location.href,
+        formSelector: VACANCY_FORM_SELECTOR,
+        formHtml: form.outerHTML,
+        formText: form.textContent?.trim(),
+        action: form.action || undefined,
+        method: form.method || undefined,
+        collectedAt: new Date().toISOString(),
+      },
+    });
+
+    rememberCapturedVacancyForm(captureKey);
+    console.log("[JobAgent] vacancy response form captured", captureKey);
+    return true;
+  } catch (error) {
+    console.warn("[JobAgent] vacancy response form capture failed", error);
+    return true;
+  }
+}
+
+function scheduleVacancyResponseFormCapture() {
+  window.clearTimeout(captureTimer);
+
+  let attempts = 0;
+
+  const tick = async () => {
+    const captured = await captureVacancyResponseForm();
+
+    if (captured) return;
+
+    if (attempts++ < 20) {
+      captureTimer = window.setTimeout(tick, 500);
+    }
+  };
+
+  void tick();
+}
 
 declare global {
   interface Window {
@@ -110,19 +265,29 @@ function detectContentSite(host: string): SiteId {
 
   // 1) один раз при загрузке
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bootstrapResume, {
-      once: true,
-    });
+    document.addEventListener(
+      "DOMContentLoaded",
+      () => {
+        bootstrapResume();
+        scheduleVacancyResponseFormCapture();
+      },
+      {
+        once: true,
+      },
+    );
   } else {
     bootstrapResume();
+    scheduleVacancyResponseFormCapture();
   }
 
   // 2) ловим SPA-навигацию (HH часто меняет view без перезагрузки)
   let lastHref = location.href;
+
   const onUrlChange = () => {
     if (location.href === lastHref) return;
     lastHref = location.href;
     bootstrapResume();
+    scheduleVacancyResponseFormCapture();
   };
 
   const mo = new MutationObserver(onUrlChange);

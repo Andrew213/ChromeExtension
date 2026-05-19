@@ -45,6 +45,7 @@ export function applyFromSerpFlow(state: TickState): TickResult {
 
     console.log("ctx.beforeUrl", ctx.beforeUrl);
     console.log("location.href", location.href);
+
     if (ctx.beforeUrl && location.href !== ctx.beforeUrl) {
       console.log("SPA redirect detected, going back", {
         from: ctx.beforeUrl,
