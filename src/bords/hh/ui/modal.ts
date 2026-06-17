@@ -18,10 +18,7 @@ export function findSubmitButton(modal: HTMLElement) {
   );
   return (
     buttons.find((b) => {
-      return (
-        b.textContent?.trim().toLocaleLowerCase() === "откликнуться" ||
-        b.dataset.qa === "vacancy-response-submit-popup"
-      );
+      return b.dataset.qa === "vacancy-response-submit-popup";
     }) || null
   );
 }
